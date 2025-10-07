@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "381382176380",
+    "project_id": "hsound-8aad2",
+    "storage_bucket": "hsound-8aad2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:381382176380:android:155ac2c8c6ec30b28d23f9",
+        "android_client_info": {
+          "package_name": "com.example.hsound"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "381382176380-u900qlmrak8oqlhf5miq6sq7pd3bor7e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hsound",
+            "certificate_hash": "812fb3c46947cb5e5e1f813a917bfb298db9d4d6"
+          }
+        },
+        {
+          "client_id": "381382176380-eavm8b7i27h99gkju711a9itj3rdkup4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFs54dtfmUaOTtAB4jBdBURcBzyQUZAls"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "381382176380-eavm8b7i27h99gkju711a9itj3rdkup4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "381382176380-7gdlb6egui2li8l39kfpajnq6reop0to.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.hsound"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
