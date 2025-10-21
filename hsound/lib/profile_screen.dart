@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hsound/firestore_service.dart';
+import 'package:hsound/share_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -108,22 +109,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ✅ NUEVA: Función para abrir enlaces sociales
-  Future<void> _launchSocialUrl(String url) async {
-    try {
-      final Uri uri = Uri.parse(url);
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        throw Exception('No se pudo abrir $url');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al abrir enlace: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+  //Función para abrir enlaces sociales
+Future<void> _launchSocialUrl(String url) async {
+  try {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw Exception('No se pudo abrir $url');
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al abrir enlace: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
+
+// Función para compartir perfil
+void _shareProfile() async {
+  try {
+    final String profileUrl = 'https://hsound-app.com/artist/${user!.uid}';
+    final String artistName = _userData?['name'] ?? 'Artista';
+    final String bio = _userData?['bio'] ?? '';
+    
+    await ShareService.shareArtistProfile(
+      artistName: artistName,
+      profileUrl: profileUrl,
+      bio: bio,
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al compartir perfil: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+// EL build METHOD VA DESPUÉS DE LAS FUNCIONES
+// (Método build duplicado eliminado)
 
   @override
   Widget build(BuildContext context) {
@@ -136,6 +162,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(color: Color(0xFF4ADE80)),
         ),
         actions: [
+          // Botón compartir perfil
+    IconButton(
+      icon: const Icon(Icons.share, color: Color(0xFF4ADE80)),
+      onPressed: _shareProfile,
+      tooltip: 'Compartir perfil',
+    ),
+          // Botón editar perfil
           IconButton(
             icon: const Icon(Icons.edit, color: Color(0xFF4ADE80)),
             onPressed: () {
@@ -467,7 +500,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   //  Sección de enlaces sociales
-  // ✅ MEJORADA: Sección de enlaces sociales
+
   Widget _buildSocialLinksSection() {
     return Container(
       width: double.infinity,
@@ -689,7 +722,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ✅ NUEVA: Función para mostrar modal de cerrar sesión
+  // Función para mostrar modal de cerrar sesión
   Future<void> _showLogoutConfirmation() async {
     bool confirmLogout = await showDialog(
       context: context,
@@ -731,7 +764,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-// ✅ NUEVA: Función para navegar a agregar canción
+// Función para navegar a agregar canción
   void _navigateToAddSong() {
     Navigator.pushNamed(context, '/add_song');
   }

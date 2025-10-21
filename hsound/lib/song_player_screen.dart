@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hsound/share_service.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -29,7 +30,7 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF1E1E1E))
@@ -59,7 +60,7 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
         },
         onNavigationRequest: (NavigationRequest request) {
           // Permitir navegación a YouTube/Spotify
-          if (request.url.contains('youtube.com') || 
+          if (request.url.contains('youtube.com') ||
               request.url.contains('youtu.be') ||
               request.url.contains('spotify.com') ||
               request.url.contains('deezer.com')) {
@@ -76,21 +77,21 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
     switch (widget.platform) {
       case 'youtube':
         return _convertYouTubeUrl(originalUrl);
-      
+
       case 'spotify':
         // Spotify no funciona en WebView, abrir directamente
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _openInNativeApp();
         });
         return 'about:blank';
-      
+
       case 'deezer':
         // Deezer tampoco funciona bien en WebView
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _openInNativeApp();
         });
         return 'about:blank';
-      
+
       default:
         return originalUrl;
     }
@@ -100,7 +101,7 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
   String _convertYouTubeUrl(String originalUrl) {
     try {
       String videoId = '';
-      
+
       // Formato 1: youtu.be/ID
       if (originalUrl.contains('youtu.be/')) {
         videoId = originalUrl.split('youtu.be/').last.split('?').first;
@@ -118,11 +119,11 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
         final uri = Uri.parse(originalUrl);
         videoId = uri.queryParameters['v'] ?? '';
       }
-      
+
       if (videoId.isNotEmpty) {
         return 'https://www.youtube.com/embed/$videoId?autoplay=1&playsinline=1';
       }
-      
+
       return originalUrl;
     } catch (e) {
       return originalUrl;
@@ -155,6 +156,24 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
     controller.reload();
   }
 
+  // ✅ NUEVA: Función para compartir canción actual
+  void _shareCurrentSong() async {
+    try {
+      await ShareService.shareSong(
+        songTitle: widget.songTitle,
+        artistName: widget.artistName,
+        songUrl: widget.songUrl,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al compartir: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -173,6 +192,11 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share, color: Color(0xFF4ADE80)),
+            onPressed: _shareCurrentSong,
+            tooltip: 'Compartir canción',
+          ),
           IconButton(
             icon: const Icon(Icons.open_in_new, color: Color(0xFF4ADE80)),
             onPressed: _openInNativeApp,
@@ -208,7 +232,7 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
                   child: _getPlatformIcon(widget.platform),
                 ),
                 const SizedBox(height: 16),
-                
+
                 Text(
                   widget.songTitle,
                   style: const TextStyle(
@@ -221,7 +245,7 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
-                
+
                 Text(
                   widget.artistName,
                   style: const TextStyle(
@@ -230,7 +254,7 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                
+
                 Text(
                   _getPlatformName(widget.platform),
                   style: TextStyle(
@@ -249,7 +273,7 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
                 : Stack(
                     children: [
                       WebViewWidget(controller: controller),
-                      
+
                       // Loading overlay
                       if (_isLoading)
                         Container(
@@ -258,7 +282,8 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4ADE80)),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF4ADE80)),
                               ),
                               const SizedBox(height: 20),
                               Text(
@@ -270,11 +295,14 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
                               const SizedBox(height: 10),
                               if (_loadingProgress > 0)
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 40),
                                   child: LinearProgressIndicator(
                                     value: _loadingProgress,
                                     backgroundColor: Colors.grey[800],
-                                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4ADE80)),
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                            Color(0xFF4ADE80)),
                                   ),
                                 ),
                             ],
@@ -327,7 +355,8 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4ADE80),
                   foregroundColor: const Color(0xFF1E1E1E),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Reintentar'),
@@ -338,7 +367,8 @@ class _SongPlayerScreenState extends State<SongPlayerScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
                 icon: const Icon(Icons.open_in_new),
                 label: const Text('Abrir en App'),

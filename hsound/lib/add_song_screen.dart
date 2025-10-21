@@ -95,18 +95,21 @@ class _AddSongScreenState extends State<AddSongScreen> {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           // Crear objeto Song
-          final song = Song(
-            id: '', // Firestore asignará automáticamente el ID
-            title: _titleController.text.trim(),
-            artistId: user.uid,
-            artistName: _artistName ?? 'Artista',
-            platform: _selectedPlatform,
-            url: _urlController.text.trim(),
-            genre: _genreController.text,
-            description: _descriptionController.text.trim(),
-            duration: int.tryParse(_durationController.text) ?? 0,
-            createdAt: DateTime.now(),
-          );
+final song = Song(
+  id: '',
+  title: _titleController.text.trim(),
+  artistId: user.uid,
+  artistName: _artistName ?? 'Artista',
+  platform: _selectedPlatform,
+  url: _urlController.text.trim(),
+  genre: _genreController.text,
+  description: _descriptionController.text.trim(),
+  duration: int.tryParse(_durationController.text) ?? 0,
+  createdAt: DateTime.now(),
+  searchKeywords: _firestoreService.createSearchKeywords( // ✅ USAR DEL SERVICIO
+    '${_titleController.text.trim()} ${_artistName ?? 'Artista'}',
+  ),
+);
 
           // Guardar en Firestore
           await _firestoreService.saveSong(song);
@@ -115,7 +118,7 @@ class _AddSongScreenState extends State<AddSongScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('🎵 Canción agregada exitosamente!'),
-              backgroundColor: Color(0xFF4ADE80),
+              backgroundColor: Color.fromARGB(255, 224, 230, 226),
             ),
           );
 

@@ -13,6 +13,7 @@ class Song {
   final DateTime createdAt;
   final int likes;
   final int plays;
+  final List<String> searchKeywords; // Lista de palabras clave para búsqueda
 
   Song({
     required this.id,
@@ -27,6 +28,8 @@ class Song {
     required this.createdAt,
     this.likes = 0,
     this.plays = 0,
+    required this.searchKeywords, // inicializar en el constructor
+
   });
 
   // Convertir de Firestore a objeto Song
@@ -45,6 +48,7 @@ class Song {
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       likes: data['likes'] ?? 0,
       plays: data['plays'] ?? 0,
+      searchKeywords: List<String>.from(data['searchKeywords'] ?? []), // manejar null
     );
   }
 
@@ -62,6 +66,7 @@ class Song {
       'createdAt': FieldValue.serverTimestamp(),
       'likes': likes,
       'plays': plays,
+      'searchKeywords': searchKeywords, // incluir en el Map
     };
   }
 }

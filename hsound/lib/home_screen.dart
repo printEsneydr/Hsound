@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hsound/share_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,18 +23,36 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (index) {
       case 0: // Inicio - ya estamos en home
         break;
-      case 1: // Buscar
-        // Navigator.pushNamed(context, '/search'); // Crearemos después
+      case 1: // Buscar}
+        Navigator.pushNamed(context, '/search'); // IR A SEARCH SCREEN
         break;
       case 2: // Biblioteca
         // Navigator.pushNamed(context, '/library'); // Crearemos después
+          _showComingSoon(context);
+    
         break;
       case 3: // Perfil
         Navigator.pushNamed(context, '/profile'); // IR AL PERFIL
         break;
     }
   }
-
+//Función para mostrar mensaje "próximamente"
+void _showComingSoon(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('📚 Biblioteca - Próximamente'),
+      backgroundColor: Color(0xFF4ADE80),
+      duration: Duration(seconds: 2),
+    ),
+  );
+  
+  //Regresar al índice anterior después de mostrar el mensaje
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    setState(() {
+      _selectedIndex = 0; // Volver a Inicio
+    });
+  });
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -182,6 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             final data = song.data() as Map<String, dynamic>;
 
                             return _buildSongItem(
+                              songId: song.id,
                               title: data['title'] ?? 'Sin título',
                               artist: data['artistName'] ?? 'Artista desconocido',
                               platform: data['platform'] ?? 'youtube',
@@ -343,6 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSongItem({
+    required String songId,
     required String title,
     required String artist,
     required String platform,
@@ -391,25 +412,47 @@ class _HomeScreenState extends State<HomeScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    artist,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
+                   Text(
+                  artist,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ],
             ),
-            const Icon(
-              Icons.play_arrow,
-              color: Color(0xFF4ADE80),
-            ),
-          ],
-        ),
+          ),
+          
+          //Botón de compartir
+          IconButton(
+            onPressed: () => _shareSong(title, artist),
+            icon: const Icon(Icons.share, color: Color(0xFF4ADE80)),
+            tooltip: 'Compartir canción',
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+//Función para compartir canción
+void _shareSong(String title, String artist) async {
+  try {
+    // Aquí necesitarías obtener la URL real de la canción
+    // Por ahora usaremos una URL genérica
+    final String songUrl = 'https://hsound-app.com/song/123'; // URL temporal
+    
+    await ShareService.shareSong(
+      songTitle: title,
+      artistName: artist,
+      songUrl: songUrl,
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al compartir: $e'),
+        backgroundColor: Colors.red,
       ),
     );
   }
+}
 
   Widget _getPlatformIcon(String platform) {
     switch (platform) {
