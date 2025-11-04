@@ -14,6 +14,8 @@ class Song {
   final int likes;
   final int plays;
   final List<String> searchKeywords; // Lista de palabras clave para búsqueda
+  final bool isLiked; //CAMPO PARA ESTADO DE LIKE
+
 
   Song({
     required this.id,
@@ -29,6 +31,8 @@ class Song {
     this.likes = 0,
     this.plays = 0,
     required this.searchKeywords, // inicializar en el constructor
+    this.isLiked = false, // Valor por defecto
+
 
   });
 
@@ -49,6 +53,7 @@ class Song {
       likes: data['likes'] ?? 0,
       plays: data['plays'] ?? 0,
       searchKeywords: List<String>.from(data['searchKeywords'] ?? []), // manejar null
+      isLiked: false, // Se actualizará después
     );
   }
 
@@ -68,5 +73,24 @@ class Song {
       'plays': plays,
       'searchKeywords': searchKeywords, // incluir en el Map
     };
+  }
+    // ✅ NUEVO: Método para actualizar el estado de like
+  Song copyWith({bool? isLiked}) {
+    return Song(
+      id: id,
+      title: title,
+      artistId: artistId,
+      artistName: artistName,
+      platform: platform,
+      url: url,
+      genre: genre,
+      description: description,
+      duration: duration,
+      createdAt: createdAt,
+      likes: likes,
+      plays: plays,
+      searchKeywords: searchKeywords,
+      isLiked: isLiked ?? this.isLiked,
+    );
   }
 }

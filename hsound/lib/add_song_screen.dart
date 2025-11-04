@@ -26,21 +26,21 @@ class _AddSongScreenState extends State<AddSongScreen> {
   bool _isLoading = false;
   String? _artistName;
 
-  // Lista de plataformas disponibles
+  // 🎯 MODIFICADO: Lista de plataformas disponibles (sin Deezer)
   final List<Map<String, String>> _platforms = [
     {'value': 'youtube', 'label': 'YouTube', 'icon': '🎥'},
     {'value': 'spotify', 'label': 'Spotify', 'icon': '🎵'},
-    {'value': 'deezer', 'label': 'Deezer', 'icon': '🔊'},
     {'value': 'youtube_music', 'label': 'YouTube Music', 'icon': '🎶'},
     {'value': 'soundcloud', 'label': 'SoundCloud', 'icon': '☁️'},
     {'value': 'other', 'label': 'Otra plataforma', 'icon': '🔗'},
   ];
 
-  // Lista de géneros musicales
+  // 🎯 MODIFICADO: Lista de géneros musicales (con Trap)
   final List<String> _genres = [
     'Rock',
     'Pop',
     'Hip Hop/Rap',
+    'Trap', // 🎵 NUEVO: Género Trap agregado
     'Electrónica',
     'Reggaetón',
     'Salsa',
@@ -84,6 +84,66 @@ class _AddSongScreenState extends State<AddSongScreen> {
     }
   }
 
+  // 🎯 MEJORADO: SnackBars con mejor contraste
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF15803D), // Verde más oscuro
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showInfoSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blue[700], // Azul para información
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showWarningSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.orange[700], // Naranja para advertencias
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.red[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
   // Función para guardar la canción
   Future<void> _saveSong() async {
     if (_formKey.currentState!.validate()) {
@@ -95,44 +155,34 @@ class _AddSongScreenState extends State<AddSongScreen> {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           // Crear objeto Song
-final song = Song(
-  id: '',
-  title: _titleController.text.trim(),
-  artistId: user.uid,
-  artistName: _artistName ?? 'Artista',
-  platform: _selectedPlatform,
-  url: _urlController.text.trim(),
-  genre: _genreController.text,
-  description: _descriptionController.text.trim(),
-  duration: int.tryParse(_durationController.text) ?? 0,
-  createdAt: DateTime.now(),
-  searchKeywords: _firestoreService.createSearchKeywords( // ✅ USAR DEL SERVICIO
-    '${_titleController.text.trim()} ${_artistName ?? 'Artista'}',
-  ),
-);
+          final song = Song(
+            id: '',
+            title: _titleController.text.trim(),
+            artistId: user.uid,
+            artistName: _artistName ?? 'Artista',
+            platform: _selectedPlatform,
+            url: _urlController.text.trim(),
+            genre: _genreController.text,
+            description: _descriptionController.text.trim(),
+            duration: int.tryParse(_durationController.text) ?? 0,
+            createdAt: DateTime.now(),
+            searchKeywords: _firestoreService.createSearchKeywords(
+              '${_titleController.text.trim()} ${_artistName ?? 'Artista'}',
+            ),
+          );
 
           // Guardar en Firestore
           await _firestoreService.saveSong(song);
 
-          // Mostrar mensaje de éxito
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🎵 Canción agregada exitosamente!'),
-              backgroundColor: Color.fromARGB(255, 224, 230, 226),
-            ),
-          );
+          // 🎯 MEJORADO: Mensaje de éxito
+          _showSuccessSnackBar('✅ Canción agregada exitosamente!');
 
           // Regresar a la pantalla anterior
           Navigator.pop(context);
         }
       } catch (e) {
-        // Mostrar mensaje de error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        // 🎯 MEJORADO: Mensaje de error
+        _showErrorSnackBar('❌ Error al guardar: $e');
       } finally {
         setState(() {
           _isLoading = false;
@@ -155,44 +205,69 @@ final song = Song(
     switch (_selectedPlatform) {
       case 'youtube':
         if (!value.contains('youtube.com') && !value.contains('youtu.be')) {
-          return 'URL de YouTube no válida';
+          return 'URL de YouTube no válida. Debe ser de youtube.com o youtu.be';
         }
 
-        // CONVERTIR AUTOMÁTICAMENTE a formato embed para mejor reproducción
+        // ✅ MEJORADO: Más formatos de YouTube soportados
         String? videoId;
-
         if (value.contains('youtu.be/')) {
           videoId = value.split('youtu.be/').last.split('?').first;
         } else if (value.contains('watch?v=')) {
           videoId = value.split('v=').last.split('&').first;
+        } else if (value.contains('youtube.com/embed/')) {
+          videoId = value.split('embed/').last.split('?').first;
+        } else if (value.contains('youtube.com/v/')) {
+          videoId = value.split('v/').last.split('?').first;
         }
 
         if (videoId != null && videoId.isNotEmpty) {
-          // Mostrar mensaje informativo
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✅ URL de YouTube convertida a formato compatible'),
-              backgroundColor: const Color(0xFF4ADE80),
-              duration: const Duration(seconds: 2),
-            ),
-          );
+          // 🎯 MEJORADO: Mensaje informativo
+          _showInfoSnackBar('🎥 YouTube: Reproducción embebida disponible');
+        } else {
+          return 'No se pudo detectar el ID del video de YouTube';
         }
         break;
 
       case 'spotify':
-        if (!value.contains('spotify.com')) {
-          return 'URL de Spotify no válida';
+        if (!value.contains('spotify.com') &&
+            !value.contains('open.spotify.com')) {
+          return 'URL de Spotify no válida. Debe ser de open.spotify.com';
         }
+
+        // Validar formato específico de Spotify
+        if (!value.contains('/track/')) {
+          return 'URL de Spotify debe ser de un track específico (contener /track/)';
+        }
+
+        // 🎯 MEJORADO: Mensaje informativo
+        _showInfoSnackBar('🎵 Spotify: Widget oficial disponible');
         break;
 
-      case 'deezer':
-        if (!value.contains('deezer.com')) {
-          return 'URL de Deezer no válida';
+      case 'soundcloud':
+        if (!value.contains('soundcloud.com')) {
+          return 'URL de SoundCloud no válida';
         }
+
+        // 🎯 MEJORADO: Mensaje más claro para SoundCloud
+        _showInfoSnackBar('☁️ SoundCloud: Se reproducirá en la app');
+        break;
+
+      case 'youtube_music':
+        if (!value.contains('music.youtube.com')) {
+          return 'URL de YouTube Music no válida';
+        }
+
+        // YouTube Music usa el mismo sistema que YouTube normal
+        _showInfoSnackBar('🎶 YouTube Music: Reproducción embebida disponible');
+        break;
+
+      default:
+        // Para otras plataformas
+        _showWarningSnackBar('🔗 Otra plataforma: Se intentará reproducción embebida');
         break;
     }
 
-    return null;
+    return null; // URL válida
   }
 
   @override
@@ -228,18 +303,32 @@ final song = Song(
                         decoration: BoxDecoration(
                           color: const Color(0xFF1E1E1E),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF4ADE80).withOpacity(0.3)),
                         ),
                         child: Row(
                           children: [
                             const Icon(Icons.person, color: Color(0xFF4ADE80)),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Text(
-                                'Artista: $_artistName',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Artista:',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  Text(
+                                    _artistName ?? 'Cargando...',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -257,6 +346,9 @@ final song = Song(
                           if (value == null || value.isEmpty) {
                             return 'Por favor ingresa el título';
                           }
+                          if (value.length < 2) {
+                            return 'El título debe tener al menos 2 caracteres';
+                          }
                           return null;
                         },
                       ),
@@ -268,7 +360,7 @@ final song = Song(
                       _buildTextField(
                         controller: _urlController,
                         label: 'URL de la canción *',
-                        hintText: 'https://...',
+                        hintText: _getUrlHintText(),
                         icon: Icons.link,
                         validator: _validateUrl,
                       ),
@@ -283,43 +375,125 @@ final song = Song(
                         hintText: 'Ej: 240 (4 minutos)',
                         icon: Icons.timer,
                         keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            final duration = int.tryParse(value);
+                            if (duration == null || duration <= 0) {
+                              return 'Ingresa una duración válida en segundos';
+                            }
+                            if (duration > 3600) {
+                              return 'La duración no puede ser mayor a 1 hora';
+                            }
+                          }
+                          return null;
+                        },
                       ),
 
                       // Campo: Descripción
                       _buildTextField(
                         controller: _descriptionController,
                         label: 'Descripción (opcional)',
-                        hintText: 'Describe tu canción...',
+                        hintText: 'Describe tu canción, inspiración, letra...',
                         icon: Icons.description,
                         maxLines: 3,
                       ),
 
+                      // Información de ayuda
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E1E1E),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.info, color: Colors.blue, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _getPlatformInfoText(),
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
                       // Botón de guardar
-                      const SizedBox(height: 30),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _saveSong,
+                          onPressed: _isLoading ? null : _saveSong,
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             backgroundColor: const Color(0xFF4ADE80),
                             foregroundColor: const Color(0xFF1E1E1E),
-                          ),
-                          child: const Text(
-                            'Guardar Canción',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFF1E1E1E),
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'GUARDAR CANCIÓN',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
                       ),
+                      const SizedBox(height: 10),
                     ],
                   ),
                 ),
               ),
             ),
     );
+  }
+
+  // 🎯 NUEVO: Texto de ayuda para URL según plataforma
+  String _getUrlHintText() {
+    switch (_selectedPlatform) {
+      case 'youtube':
+        return 'https://youtube.com/watch?v=... o https://youtu.be/...';
+      case 'spotify':
+        return 'https://open.spotify.com/track/...';
+      case 'soundcloud':
+        return 'https://soundcloud.com/usuario/cancion';
+      case 'youtube_music':
+        return 'https://music.youtube.com/watch?v=...';
+      default:
+        return 'https://...';
+    }
+  }
+
+  // 🎯 NUEVO: Información específica por plataforma
+  String _getPlatformInfoText() {
+    switch (_selectedPlatform) {
+      case 'youtube':
+        return 'Acepta: youtube.com, youtu.be. Reproducción embebida disponible.';
+      case 'spotify':
+        return 'Solo tracks individuales (/track/). Widget oficial de Spotify.';
+      case 'soundcloud':
+        return 'Reproducción en la app. Asegúrate de que el enlace sea público.';
+      case 'youtube_music':
+        return 'Mismo sistema que YouTube. Reproducción embebida disponible.';
+      default:
+        return 'Se intentará reproducción embebida. Verifica que la URL sea accesible.';
+    }
   }
 
   // Widget para campos de texto
@@ -399,6 +573,8 @@ final song = Song(
         onChanged: (value) {
           setState(() {
             _selectedPlatform = value!;
+            // Limpiar el campo de URL cuando cambia la plataforma
+            _urlController.clear();
           });
         },
         validator: (value) {

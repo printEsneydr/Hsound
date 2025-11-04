@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hsound/firestore_service.dart';
+import 'package:hsound/artist_profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -19,28 +20,28 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _searchingSongs = true;
   
   final List<String> _genres = [
-    'Todos',
-    'Rock', 'Pop', 'Hip Hop/Rap', 'Electrónica', 'Reggaetón',
-    'Salsa', 'Merengue', 'Vallenato', 'Bachata', 'Jazz',
-    'Blues', 'Clásica', 'Reggae', 'Metal', 'Indie',
-    'Folk', 'R&B', 'Country', 'Alternativo', 'Otro'
-  ];
+  'Todos',
+  'Rock', 'Pop', 'Hip Hop/Rap', "Trap", 'Electrónica', 'Reggaetón',
+  'Salsa', 'Merengue', 'Vallenato', 'Bachata', 'Jazz',
+  'Blues', 'Clásica', 'Reggae', 'Metal', 'Indie',
+  'Folk', 'R&B', 'Country', 'Alternativo', 'Otro'
+];
 
   @override
   void initState() {
     super.initState();
-    _loadGenres();
+    //_loadGenres();
   }
 
-  Future<void> _loadGenres() async {
-    final genres = await _firestoreService.getAvailableGenres();
-    setState(() {
-      _genres
-        ..clear()
-        ..add('Todos')
-        ..addAll(genres);
-    });
-  }
+  //Future<void> _loadGenres() async {
+    //final genres = await _firestoreService.getAvailableGenres();
+    //setState(() {
+      //_genres
+        //..clear()
+        //..add('Todos')
+        //..addAll(genres);
+   // });
+ // }
 
   void _performSearch() {
     setState(() {
@@ -52,30 +53,38 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {
       _searchController.clear();
       _searchQuery = '';
+      _selectedGenre = 'Todos';
     });
+  }
+
+  // 🎯 CORREGIDO: Navegación al perfil de artista
+  void _navigateToArtistProfile(String artistId, String artistName) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ArtistProfileScreen(artistId: artistId),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF212121),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text(
-          'Buscar',
-          style: TextStyle(color: Color(0xFF4ADE80)),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildSearchBar(),
+            _buildFilters(),
+            // 🎯 NUEVO: Filtros horizontales de géneros para canciones
+            if (_searchingSongs) _buildGenreFilter(),
+            Expanded(
+              child: _searchQuery.isEmpty 
+                  ? _buildEmptyState()
+                  : _buildResults(),
+            ),
+          ],
         ),
-      ),
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          _buildFilters(),
-          Expanded(
-            child: _searchQuery.isEmpty 
-                ? _buildEmptyState()
-                : _buildResults(),
-          ),
-        ],
       ),
     );
   }
@@ -91,7 +100,9 @@ class _SearchScreenState extends State<SearchScreen> {
               controller: _searchController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Buscar canciones, artistas...',
+                hintText: _searchingSongs 
+                    ? 'Buscar canciones...' 
+                    : 'Buscar artistas...',
                 hintStyle: const TextStyle(color: Colors.grey),
                 prefixIcon: const Icon(Icons.search, color: Color(0xFF4ADE80)),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -126,59 +137,184 @@ class _SearchScreenState extends State<SearchScreen> {
       color: const Color(0xFF1E1E1E),
       child: Row(
         children: [
-          ChoiceChip(
-            label: Text(_searchingSongs ? '🎵 Canciones' : '👤 Artistas'),
-            selected: true,
-            onSelected: (selected) {
-              setState(() {
-                _searchingSongs = selected;
-              });
-            },
-            backgroundColor: const Color(0xFF2D2D2D),
-            selectedColor: const Color(0xFF4ADE80),
-            labelStyle: TextStyle(
-              color: _searchingSongs ? const Color(0xFF1E1E1E) : Colors.white,
+          // Toggle Canciones/Artistas
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF2D2D2D),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                // Botón Canciones
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _searchingSongs = true;
+                      _clearSearch();
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _searchingSongs 
+                          ? const Color(0xFF4ADE80) 
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.music_note,
+                          color: _searchingSongs 
+                              ? const Color(0xFF1E1E1E) 
+                              : Colors.grey,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Canciones',
+                          style: TextStyle(
+                            color: _searchingSongs 
+                                ? const Color(0xFF1E1E1E) 
+                                : Colors.grey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Botón Artistas
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _searchingSongs = false;
+                      _clearSearch();
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: !_searchingSongs 
+                          ? const Color(0xFF4ADE80) 
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.person,
+                          color: !_searchingSongs 
+                              ? const Color(0xFF1E1E1E) 
+                              : Colors.grey,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Artistas',
+                          style: TextStyle(
+                            color: !_searchingSongs 
+                                ? const Color(0xFF1E1E1E) 
+                                : Colors.grey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           
-          const SizedBox(width: 12),
+          const Spacer(),
           
+          // Filtros adicionales solo para canciones
           if (_searchingSongs) ...[
-            DropdownButton<String>(
-              value: _selectedGenre,
-              dropdownColor: const Color(0xFF1E1E1E),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              items: _genres.map((genre) {
-                return DropdownMenuItem(
-                  value: genre,
-                  child: Text(genre),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedGenre = value!;
-                });
-              },
-            ),
-            
-            const SizedBox(width: 12),
-            
-            DropdownButton<String>(
-              value: _sortBy,
-              dropdownColor: const Color(0xFF1E1E1E),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              items: const [
-                DropdownMenuItem(value: 'title', child: Text('Título')),
-                DropdownMenuItem(value: 'popularity', child: Text('Popular')),
-                DropdownMenuItem(value: 'date', child: Text('Reciente')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _sortBy = value!;
-                });
-              },
+            // Dropdown de ordenamiento
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2D2D2D),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF4ADE80)),
+              ),
+              child: DropdownButton<String>(
+                value: _sortBy,
+                dropdownColor: const Color(0xFF1E1E1E),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                underline: const SizedBox(),
+                icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF4ADE80)),
+                items: const [
+                  DropdownMenuItem(value: 'title', child: Text('Título')),
+                  DropdownMenuItem(value: 'popularity', child: Text('Popular')),
+                  DropdownMenuItem(value: 'date', child: Text('Reciente')),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _sortBy = value!;
+                  });
+                },
+              ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  // 🎯 NUEVO: Filtros horizontales de géneros
+  Widget _buildGenreFilter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: const Color(0xFF1E1E1E),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Géneros:',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 40,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _genres.length,
+              itemBuilder: (context, index) {
+                final genre = _genres[index];
+                final isSelected = genre == _selectedGenre;
+                
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: FilterChip(
+                    label: Text(
+                      genre,
+                      style: TextStyle(
+                        color: isSelected ? const Color(0xFF1E1E1E) : Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    selected: isSelected,
+                    backgroundColor: const Color(0xFF2D2D2D),
+                    selectedColor: const Color(0xFF4ADE80),
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedGenre = genre;
+                      });
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -189,15 +325,21 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.search, color: Colors.grey, size: 80),
+          Icon(
+            _searchingSongs ? Icons.search : Icons.person_search,
+            color: Colors.grey,
+            size: 80,
+          ),
           const SizedBox(height: 20),
           Text(
-            'Busca tu música favorita',
+            _searchingSongs 
+                ? 'Busca tus canciones favoritas' 
+                : 'Busca artistas locales',
             style: TextStyle(color: Colors.grey[400], fontSize: 18),
           ),
           const SizedBox(height: 8),
           Text(
-            'Encuentra canciones y artistas de Pasto',
+            'Encuentra música y artistas de Pasto',
             style: TextStyle(color: Colors.grey[600], fontSize: 14),
           ),
         ],
@@ -235,7 +377,6 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // ✅ FUNCIÓN FALTANTE: Lista de canciones
   Widget _buildSongList(List<QueryDocumentSnapshot> songs) {
     return ListView.builder(
       itemCount: songs.length,
@@ -250,40 +391,9 @@ class _SearchScreenState extends State<SearchScreen> {
           genre: songData['genre'] ?? 'General',
           platform: songData['platform'] ?? 'youtube',
           likes: songData['likes'] ?? 0,
-          songUrl: songData['url'] ?? '', // ✅ URL REAL
+          songUrl: songData['url'] ?? '',
         );
       },
-    );
-  }
-
-  // ✅ FUNCIÓN FALTANTE: Error con reintento
-  Widget _buildErrorWithRetry(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.search_off, color: Colors.orange, size: 60),
-          const SizedBox(height: 16),
-          const Text(
-            'Búsqueda limitada temporalmente',
-            style: TextStyle(color: Colors.white, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Usando búsqueda básica',
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => setState(() {}),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4ADE80),
-              foregroundColor: const Color(0xFF1E1E1E),
-            ),
-            child: const Text('Reintentar Búsqueda'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -399,11 +509,7 @@ class _SearchScreenState extends State<SearchScreen> {
         overflow: TextOverflow.ellipsis,
       ),
       trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Perfil de $name')),
-        );
-      },
+      onTap: () => _navigateToArtistProfile(artistId, name), // 🎯 AHORA SÍ FUNCIONA
     );
   }
 
@@ -412,10 +518,16 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.music_off, color: Colors.grey, size: 60),
+          Icon(
+            _searchingSongs ? Icons.music_off : Icons.person_off,
+            color: Colors.grey,
+            size: 60,
+          ),
           const SizedBox(height: 16),
           Text(
-            'No se encontraron resultados',
+            _searchingSongs 
+                ? 'No se encontraron canciones' 
+                : 'No se encontraron artistas',
             style: TextStyle(color: Colors.grey[400], fontSize: 16),
           ),
           const SizedBox(height: 8),
@@ -431,6 +543,36 @@ class _SearchScreenState extends State<SearchScreen> {
               foregroundColor: const Color(0xFF1E1E1E),
             ),
             child: const Text('Limpiar búsqueda'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWithRetry(String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.search_off, color: Colors.orange, size: 60),
+          const SizedBox(height: 16),
+          const Text(
+            'Búsqueda limitada temporalmente',
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Usando búsqueda básica',
+            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () => setState(() {}),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4ADE80),
+              foregroundColor: const Color(0xFF1E1E1E),
+            ),
+            child: const Text('Reintentar Búsqueda'),
           ),
         ],
       ),
@@ -465,8 +607,8 @@ class _SearchScreenState extends State<SearchScreen> {
         return const Text('🎥', style: TextStyle(fontSize: 16));
       case 'spotify':
         return const Text('🎵', style: TextStyle(fontSize: 16));
-      case 'deezer':
-        return const Text('🔊', style: TextStyle(fontSize: 16));
+      case 'soundcloud':
+        return const Text('☁️', style: TextStyle(fontSize: 16));
       default:
         return const Icon(Icons.music_note, color: Color(0xFF4ADE80), size: 16);
     }

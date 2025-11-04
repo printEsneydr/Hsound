@@ -19,6 +19,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _youtubeController = TextEditingController();
   final TextEditingController _spotifyController = TextEditingController();
+  final TextEditingController _soundcloudController = TextEditingController(); // 🎵 NUEVO
   final TextEditingController _instagramController = TextEditingController();
   final TextEditingController _tiktokController = TextEditingController();
   final TextEditingController _whatsappController = TextEditingController();
@@ -49,6 +50,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _bioController.text = data['bio'] ?? '';
           _youtubeController.text = data['youtubeUrl'] ?? '';
           _spotifyController.text = data['spotifyUrl'] ?? '';
+          _soundcloudController.text = data['soundcloudUrl'] ?? ''; // 🎵 NUEVO
           _instagramController.text = data['instagramUrl'] ?? '';
           _tiktokController.text = data['tiktokUrl'] ?? '';
           _whatsappController.text = data['whatsappUrl'] ?? '';
@@ -59,6 +61,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       print('Error loading profile: $e');
+      _showErrorSnackBar('Error al cargar perfil: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -66,7 +69,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // Guardar perfil
+  // 🎯 MEJORADO: SnackBar con mejor contraste
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF15803D), // Verde más oscuro
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.red[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  // Guardar perfil - CORREGIDO
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -74,36 +106,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       });
 
       try {
-        await _firestoreService.saveUserProfile({
+        // 🎯 CORREGIDO: Usar updateUserProfile en lugar de saveUserProfile
+        await _firestoreService.updateUserProfile({
           'name': _nameController.text,
           'bio': _bioController.text,
           'youtubeUrl': _youtubeController.text,
           'spotifyUrl': _spotifyController.text,
+          'soundcloudUrl': _soundcloudController.text, // 🎵 NUEVO
           'instagramUrl': _instagramController.text,
           'tiktokUrl': _tiktokController.text,
           'whatsappUrl': _whatsappController.text,
           'facebookUrl': _facebookController.text,
           'contactEmail': _emailController.text,
           'isArtist': _isArtist,
-          'photoUrl': FirebaseAuth.instance.currentUser?.photoURL,
           'updatedAt': FieldValue.serverTimestamp(),
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Perfil actualizado correctamente'),
-            backgroundColor: Color(0xFF4ADE80),
-          ),
-        );
+        _showSuccessSnackBar('✅ Perfil actualizado correctamente');
         
         Navigator.pop(context); // Volver atrás
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        print('Error saving profile: $e');
+        _showErrorSnackBar('❌ Error al guardar: $e');
       } finally {
         setState(() {
           _isLoading = false;
@@ -125,7 +149,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.save, color: Color(0xFF4ADE80)),
-            onPressed: _saveProfile,
+            onPressed: _isLoading ? null : _saveProfile,
           ),
         ],
       ),
@@ -138,28 +162,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      // Switch para artista/usuario
+                      // Información del estado de artista
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E1E1E),
+                          color: _isArtist 
+                              ? const Color(0xFF15803D).withOpacity(0.2) 
+                              : const Color(0xFF1E1E1E),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isArtist 
+                                ? const Color(0xFF4ADE80) 
+                                : const Color(0xFF2D2D2D),
+                          ),
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Soy Artista',
-                              style: TextStyle(color: Colors.white, fontSize: 16),
+                            Icon(
+                              _isArtist ? Icons.verified : Icons.person,
+                              color: _isArtist ? const Color(0xFF4ADE80) : Colors.grey,
                             ),
-                            Switch(
-                              value: _isArtist,
-                              onChanged: (value) {
-                                setState(() {
-                                  _isArtist = value;
-                                });
-                              },
-                              activeColor: const Color(0xFF4ADE80),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _isArtist ? 'Cuenta de Artista' : 'Cuenta de Usuario',
+                                    style: TextStyle(
+                                      color: _isArtist ? const Color(0xFF4ADE80) : Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    _isArtist 
+                                        ? 'Puedes agregar canciones y mostrar tus redes' 
+                                        : 'Para convertirte en artista ve a tu perfil',
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -176,6 +221,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           if (value == null || value.isEmpty) {
                             return 'Por favor ingresa tu nombre';
                           }
+                          if (value.length < 2) {
+                            return 'El nombre debe tener al menos 2 caracteres';
+                          }
                           return null;
                         },
                       ),
@@ -184,7 +232,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       _buildTextField(
                         controller: _bioController,
                         label: 'Biografía',
-                        hintText: 'Cuéntanos sobre ti...',
+                        hintText: 'Cuéntanos sobre ti, tu música, inspiración...',
                         icon: Icons.description,
                         maxLines: 4,
                       ),
@@ -192,93 +240,142 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       // Solo para artistas: enlaces de música y redes
                       if (_isArtist) ...[
                         const SizedBox(height: 20),
-                        const Text(
-                          '🎵 Enlaces de Música',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
+                        _buildSectionHeader('🎵 Enlaces de Música'),
                         
-                        _buildTextField(
+                        _buildSocialTextField(
                           controller: _youtubeController,
                           label: 'YouTube',
-                          hintText: 'https://youtube.com/tu-canal',
+                          hintText: 'https://youtube.com/@tucanal',
                           icon: Icons.video_library,
+                          platform: 'youtube',
                         ),
                         
-                        _buildTextField(
+                        _buildSocialTextField(
                           controller: _spotifyController,
                           label: 'Spotify',
-                          hintText: 'https://spotify.com/tu-artista',
+                          hintText: 'https://open.spotify.com/artist/tu-id',
                           icon: Icons.music_note,
+                          platform: 'spotify',
                         ),
 
-                        _buildTextField(
+                        _buildSocialTextField(
+                          controller: _soundcloudController,
+                          label: 'SoundCloud',
+                          hintText: 'https://soundcloud.com/tu-usuario',
+                          icon: Icons.cloud,
+                          platform: 'soundcloud',
+                        ),
+
+                        _buildSocialTextField(
                           controller: _tiktokController,
                           label: 'TikTok',
                           hintText: 'https://tiktok.com/@tu-usuario',
                           icon: Icons.video_camera_back,
+                          platform: 'tiktok',
                         ),
                         
                         const SizedBox(height: 20),
-                        const Text(
-                          '📱 Redes Sociales',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-
-                        _buildTextField(
+                        _buildSectionHeader('📱 Redes Sociales'),
+                        
+                        _buildSocialTextField(
                           controller: _instagramController,
                           label: 'Instagram',
                           hintText: 'https://instagram.com/tu-usuario',
                           icon: Icons.camera_alt,
+                          platform: 'instagram',
                         ),
 
-                        _buildTextField(
+                        _buildSocialTextField(
                           controller: _facebookController,
                           label: 'Facebook',
                           hintText: 'https://facebook.com/tu-pagina',
                           icon: Icons.facebook,
+                          platform: 'facebook',
                         ),
 
                         const SizedBox(height: 20),
-                        const Text(
-                          '📞 Contacto/Booking',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-
-                        _buildTextField(
+                        _buildSectionHeader('📞 Contacto/Booking'),
+                        
+                        _buildSocialTextField(
                           controller: _whatsappController,
                           label: 'WhatsApp',
                           hintText: 'https://wa.me/573001234567',
                           icon: Icons.phone,
+                          platform: 'whatsapp',
                         ),
 
-                        _buildTextField(
+                        _buildSocialTextField(
                           controller: _emailController,
                           label: 'Email de Contacto',
                           hintText: 'artista@email.com',
                           icon: Icons.email,
+                          platform: 'email',
                           keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                              if (!emailRegex.hasMatch(value)) {
+                                return 'Ingresa un email válido';
+                              }
+                            }
+                            return null;
+                          },
                         ),
                       ],
+
+                      // Botón de guardar
+                      const SizedBox(height: 30),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _saveProfile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4ADE80),
+                            foregroundColor: const Color(0xFF1E1E1E),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Color(0xFF1E1E1E),
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'GUARDAR CAMBIOS',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -320,12 +417,52 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  // 🎯 NUEVO: Campo para redes sociales con validación opcional
+  Widget _buildSocialTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hintText,
+    required IconData icon,
+    required String platform,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF4ADE80)),
+          hintText: hintText,
+          hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF2D2D2D)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF4ADE80)),
+          ),
+          prefixIcon: Icon(icon, color: const Color(0xFF4ADE80), size: 20),
+          filled: true,
+          fillColor: const Color(0xFF1E1E1E),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
     _youtubeController.dispose();
     _spotifyController.dispose();
+    _soundcloudController.dispose(); // 🎵 NUEVO
     _instagramController.dispose();
     _tiktokController.dispose();
     _whatsappController.dispose();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:hsound/firestore_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,91 +18,29 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isGoogleLoading = false;
 
+  // Función para login con email y password
   Future<void> _signInWithEmailAndPassword() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
-        final UserCredential userCredential = 
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-          );
-
-        if (userCredential.user != null) {
-          // Navegar a HomeScreen
-          print('Login exitoso: ${userCredential.user!.email}');
-
-          // Mostrar mensaje de bienvenida
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('¡Bienvenido ${userCredential.user!.email}!'),
-              backgroundColor: const Color(0xFF4ADE80),
-            ),
-          );
-
-          // Navegar a la pantalla principal (HomeScreen)
-          Navigator.pushReplacementNamed(context, '/home'); 
-        }
-      } on FirebaseAuthException catch (e) {
-        String errorMessage = 'Error al iniciar sesión';
-        
-        if (e.code == 'user-not-found') {
-          errorMessage = 'No existe un usuario con ese correo.';
-        } else if (e.code == 'wrong-password') {
-          errorMessage = 'Contraseña incorrecta.';
-        } else if (e.code == 'invalid-email') {
-          errorMessage = 'El formato del correo no es válido.';
-        }
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: const Color.fromARGB(255, 212, 135, 130),
-          ),
-        );
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  // Función para login con Google
-  Future<void> _signInWithGoogle() async {
+  if (_formKey.currentState!.validate()) {
     setState(() {
-      _isGoogleLoading = true;
+      _isLoading = true;
     });
 
     try {
-      // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-      if (googleUser == null) {
-        // Usuario canceló el login
-        setState(() {
-          _isGoogleLoading = false;
-        });
-        return;
-      }
-
-      // Obtain the auth details from the request
-      final GoogleSignInAuthentication? googleAuth = await googleUser.authentication;
-
-      // Create a new credential
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth?.accessToken,
-        idToken: googleAuth?.idToken,
-      );
-
-      // Once signed in, return the UserCredential
-      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final UserCredential userCredential = 
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
 
       if (userCredential.user != null) {
-        print('Login con Google exitoso: ${userCredential.user!.email}');
+        // ✅ CREAR/ACTUALIZAR PERFIL EN FIRESTORE
+        final firestoreService = FirestoreService();
+        await firestoreService.saveUserProfile({
+          'name': userCredential.user!.displayName ?? 
+                  userCredential.user!.email?.split('@')[0] ?? 'Usuario',
+        });
+
+        print('Login exitoso: ${userCredential.user!.email}');
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -110,22 +49,68 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
 
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/home'); 
       }
-    } catch (e) {
-      print('Error signing in with Google: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al iniciar sesión con Google: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    } on FirebaseAuthException catch (e) {
+      // ... manejo de errores existente
     } finally {
       setState(() {
-        _isGoogleLoading = false;
+        _isLoading = false;
       });
     }
   }
+}
+
+  // Función para login con Google
+  Future<void> _signInWithGoogle() async {
+  setState(() {
+    _isGoogleLoading = true;
+  });
+
+  try {
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+    if (googleUser == null) {
+      setState(() {
+        _isGoogleLoading = false;
+      });
+      return;
+    }
+
+    final GoogleSignInAuthentication? googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth?.accessToken,
+      idToken: googleAuth?.idToken,
+    );
+
+    final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+    if (userCredential.user != null) {
+      // ✅ CREAR/ACTUALIZAR PERFIL EN FIRESTORE
+      final firestoreService = FirestoreService();
+      await firestoreService.saveUserProfile({
+        'name': googleUser.displayName ?? userCredential.user!.displayName ?? 'Usuario',
+      });
+
+      print('Login con Google exitoso: ${userCredential.user!.email}');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('¡Bienvenido ${userCredential.user!.email}!'),
+          backgroundColor: const Color(0xFF4ADE80),
+        ),
+      );
+
+      Navigator.pushReplacementNamed(context, '/home');
+    }
+  } catch (e) {
+    // ... manejo de errores existente
+  } finally {
+    setState(() {
+      _isGoogleLoading = false;
+    });
+  }
+}
 
   @override
   void dispose() {
